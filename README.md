@@ -25,3 +25,8 @@ Automated CI/CD: Docker images are built automatically upon pushing code changes
 1. Install Python 3.9 or higher.
 <br>
 2. Install Docker.
+
+<br>
+to install the required packages: 
+<br>
+pip install -r requirements.txt
