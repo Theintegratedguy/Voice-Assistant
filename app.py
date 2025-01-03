@@ -33,4 +33,36 @@ def listen():
         except sr.WaitTimeoutError:
             st.warning("You were silent. Try again.")
             return ""
+
+# Streamlit App
+st.title("Voice Assistant with Streamlit")
+st.text("Click the buttons below to interact with the assistant.")
+
+if 'response' not in st.session_state:
+    st.session_state['response'] = ""
+
+if st.button("Start Listening"):
+    command = listen()
+    if "hello" in command:
+        response = "Hi there! How can I assist you?"
+    elif "your name" in command:
+        response = "I am your voice assistant. What can I do for you?"
+    elif "time" in command:
+        now = datetime.now().strftime("%H:%M:%S")
+        response = f"The current time is {now}"
+    elif "exit" in command or "quit" in command:
+        response = "Goodbye! Have a great day!"
+    elif command:
+        response = "Sorry, I didn't understand that. Can you try again?"
+    else:
+        response = "You didn't say anything."
+
+    # Display and speak the response
+    st.session_state['response'] = response
+    st.success(response)
+    speak(response)
+
+# Display previous response
+if st.session_state['response']:
+    st.text_area("Assistant Response", st.session_state['response'], height=150)
         
