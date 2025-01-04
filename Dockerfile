@@ -1,17 +1,46 @@
-# Use an official Python runtime as a base image
-FROM python:3.9-slim
+# syntax=docker/dockerfile:1
 
-# Set the working directory in the container
-WORKDIR /Voice-Assistant/
+# ARG for Python version
+ARG PYTHON_VERSION=3.10.5
+FROM python:${PYTHON_VERSION}-slim AS base
 
-# Copy the application files to the container
-COPY . /Voice-Assistant/
+# Prevents Python from writing pyc files.
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Keeps Python from buffering stdout and stderr to avoid situations where
+# the application crashes without emitting any logs due to buffering.
+ENV PYTHONUNBUFFERED=1
 
-# Expose the port your app runs on (adjust as necessary)
-EXPOSE 8080
+WORKDIR /Voice-Assistant
 
-# Command to run the application
-CMD ["python", "app.py"]
+# Create a non-privileged user that the app will run under.
+# See https://docs.docker.com/go/dockerfile-user-best-practices/
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser
+
+# Download dependencies as a separate step to take advantage of Docker's caching.
+# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
+# Leverage a bind mount to requirements.txt to avoid having to copy them into
+# this layer.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=bind,source=requirements.txt,target=requirements.txt \
+    python -m pip install -r requirements.txt
+
+# Switch to the non-privileged user to run the application.
+USER appuser
+
+# Copy the source code into the container.
+COPY . .
+
+# Expose the port that the application listens on.
+EXPOSE 8000
+
+# Run the application using JSON syntax to avoid OS signal-related issues.
+CMD ["streamlit", "run", "app.py"]
